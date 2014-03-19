@@ -1,0 +1,278 @@
+%\VignetteIndexEntry{Analyze flow cytometric data of complex microbial communities based on histogram images}
+%\VignetteDepends{flowCHIC}
+%\VignetteKeywords{}
+%\VignettePackage{flowCHIC}
+
+\documentclass{article}
+\usepackage{graphicx}
+\usepackage{geometry}
+\usepackage{cite}
+\usepackage{caption}
+\geometry{a4paper,left=20mm,right=30mm, top=2cm, bottom=2cm} 
+\setlength{\parindent}{0ex}
+
+\title{flowCHIC - Analyze flow cytometric data of complex microbial communities based on histogram images}
+\author{Schumann, J., Koch, C., Fetzer, I., M\"uller, S. \\
+        Helmholtz Centre for Environmental Research - UFZ\\
+        Department of Environmental Microbiology\\ }
+
+\date{\today}
+
+\begin{document}
+ \setkeys{Gin}{width=0.55\textwidth} 
+\SweaveOpts{concordance=TRUE}
+\maketitle
+
+
+\begin{abstract}
+CHIC means cytometric histogram image comparison and is a tool for evaluation of cytometric datasets nearly automatically and very fast. On the first hand it was developed for evaluation of microbial cytometric data but it can also be used for any other cytometric dataset. It is based on the main idea that histograms are converted into images thus lowering information but enabling diagnosing systems in an instant. Although cell specific information is given up in this way it allows, on the other hand, huge datasets to be evaluated within very short time frames. It is, therefore, a tool to visualize cell population or community dynamics. Right now, the main application is monitoring microbial dynamics in managed natural environments such as wastewater, biogas, or groundwater. 
+\end{abstract}
+
+\section{Introduction}
+The background of the CHIC tool is published in \cite{koch2013chic}. The CHIC tool contains three parts. The first part provides information on cell distributions and their respective abundances in histograms, the second part transforms vector based histograms into bitmap images while the third part evaluates and compares these images. Only the third part of the CHIC tool uses R and is provided in this package. 
+
+The first part of the CHIC tool directly uses cytometric raw data (usually .fcs files) that can be obtained from any cytometric analysis. As the later evaluation occurs on grey value comparison in a starting step arbitrary color keys of cytometric histograms are converted into equally spaced grey graduations. Here, \cite{koch2013chic} provided a script for easy application in Summit 3.1 but other conventional vector based image software can also be used such as Power Point. Make sure that the same grey graduation is used for all samples in one application. The second part creates images with instrumental noise or bead signals eliminated by gate setting using Image J.  This program is also used to compare all images by assessing presence/absence of pixel values of two images at a time \cite{koch2013chic}. 
+
+Now the third part starts using the script provided within this package. As an outcome nonmetric multidimensional scaling (NMDS) is performed giving information on how similar/dissimilar certain samples are or how the structure of populations or communities is changing over time. Examples are discussed in \cite{koch2014microbiomes} and also given below. To find out the driving forces of population variation the rationale of abiotic parameters such as pH values, temperature, or concentrations of chemicals can be evaluated. By using gate information obtained from the CyBar tool \cite{schumann2014R} influences coming from certain subpopulations or subcommunities can also be detected. It needs to be stated that CHIC requires datasets that are highly calibrated by using e.g. fuorescent beads. Every shift in the adjustment of a cytometer will be discovered using CHIC and will have an influence on the outcome. CHIC can be used for any cytometric  dataset. The strength of the tool lies in its easy application, especially if big datasets needs to be evaluated and its nearly automatic, person-independent application. The tool provides trends in community or population dynamics or informs on stability of cell systems.
+
+\newpage
+
+
+\section{Overview} \label{overview}
+
+\begin{description}
+\item[Creation of images from flow cytometric raw data\label{image}]{The software Summit 3.1 is used for creating images of flow cytometric raw data.}
+\item[Image analysis with ImageJ software\label{imagej}]{The software ImageJ is used for analysing the images created by Summit 3.1.}
+\item[Similarity calculation in R\label{r}]{The similarities of the images are calculated using nonmetric multidimensional scaling (NMDS).}
+\end{description}
+
+
+\section{Details}\label{Details}
+
+\subsection{Creation of images from flow cytometric raw data}
+Summit 3.1 is used for creating images of flow cytometric raw data. After the .fcs files of interest are opened the histogram properties are changed. The resolution is set to 128 and the color table is set for a grey value scale. The resulting images are saved as .bmp files in one folder. This procedure is described more detailed in \cite{koch2013chic} and not a part of this package, by now.
+
+\subsection{Image analysis with ImageJ software}
+The images created by Summit 3.1 are processed using ImageJ. Using various macros the area of interest is cut from each picture manually, the overlap and XOR images are created and the areas and intensities are calculated. This procedure is described more detailed in \cite{koch2013chic} and not a part of this package, by now.
+
+\subsection{Similarity calculation in R}
+The similarities found in the processed images are calculated using R. Therefore, a dissimilarity matrix is calculated based on the intensities of the XOR images. The results are shown as an NMDS plot. In addition, a cluster analysis is performed to reveal samples with high similarities. For additional information see \cite{koch2013chic}.
+
+\section{Reading the data}
+The data always have to be read in R. In R change the working directory to the path where the Results\_overlaps and Results\_XOR tables created by ImageJ are located and read the data (see example below). All backslashes "\textbackslash" may be changed to slashes "/" when using Windows.
+
+<<SetRead,echo=TRUE,results=hide,eval=FALSE>>=
+# Type the path of the data into the quotes
+setwd("") 
+# or in Windows use
+setwd(choose.dir(getwd(), "Choose the folder containing the data"))
+# Type the filename of the overlap data (including extension) into the quotes
+Results_overlaps<-read.table("Results_overlaps.txt",header=TRUE,sep="\t")  
+# Type the filename of the XOR data (including extension) into the quotes
+Results_xor<-read.table("Results_xor.txt",header=TRUE,sep="\t")  
+@
+
+\section{CHIC}
+This package provides the third part of the CHIC analyzing procedure \cite{koch2013chic} and is used for 
+calculating the similarities found in the histogram images of cytometric data. This sections gives an overview of the function that is used in this package. The datasets that are attached to the package serve as examples for demonstration and the influence of different parameter settings on the results. The package has to be loaded in R.
+
+<<loadPackage,echo=TRUE,results=hide>>=
+# Load package
+library(flowCHIC)
+@
+In the following the attached datasets \texttt{Results\_overlaps} and \texttt{Results\_xor} are used for demonstration.
+\newpage
+The contents of these datasets looks as follows (excerpts):
+
+
+<<overlaps, echo=TRUE>>=
+# Load dataset
+data(Results_overlaps) 
+# Show data (first ten lines)
+Results_overlaps[1:10,]
+@
+
+
+<<xor, echo=TRUE>>=
+# Load dataset
+data(Results_xor)
+# Show data (first ten lines)
+Results_xor[1:10,]
+@
+
+
+A NMDS plot is displayed using the names of the samples as data point texts. In addition, a cluster dendrogram is calculated to reveal samples with high similarities. The order and the number of the samples is printed to the R console.
+
+\begin{figure}[h]
+\begin{center}
+\setkeys{Gin}{width=1.0\textwidth} 
+\setkeys{Gin}{height=3in} 
+<<label=plotDefault,fig=TRUE,width=16,height=7,results=hide>>=
+chic(Results_overlaps,Results_xor)
+@
+\end{center}
+\setlength{\abovecaptionskip}{-5pt}
+\captionsetup{font=footnotesize}
+\caption{Cluster dendrogram and NMDS plot using default parameters}
+\label{fig:fig7plot}
+\end{figure}
+
+\newpage
+
+
+In addition, abiotic parameters can be added to the NMDS plot correlating with the differences found within the plot. It is important that the order and the number of the lines are identical to the order and the number of the samples printed in R. Otherwise, the output will be wrong since association of abiotic data with their samples will fail. The significance level p is set to 0.05 and the color used for plotting is set to \texttt{"magenta"} by default. If p is changed to 1 all abiotic parameters will be shown. In this example the attached dataset \texttt{Abiotic\_data} is used for demonstration. The content looks as follows (excerpt):
+
+<<Abiotic, verbatim=TRUE>>=
+# Load dataset
+data(Abiotic_data)
+# Show data (first ten lines)
+Abiotic_data[1:10,]
+@
+
+\begin{figure}[h]
+\begin{center}
+<<label=PlotAbiotic, fig=TRUE, width=8, height=7, results=hide>>=
+chic(Results_overlaps,Results_xor,abiotic=Abiotic_data,show_cluster=FALSE)
+@
+\end{center}
+\setlength{\abovecaptionskip}{-10pt}
+\captionsetup{font=footnotesize}
+\caption{NMDS plot with abiotic parameters}
+\label{fig:fig6plot}
+\end{figure}
+
+The samples can  be classified into groups manually. Therefore, every sample has to be assigned to one group. Again, it is important that the order and the number of the lines are identical to the order and the number of the samples printed in R. The file containing the group assignments can be read like described above. In this example 20 samples are assigned to three groups using the attached dataset \texttt{Groups}. 
+\newpage
+The content looks as follows (excerpt):
+
+<<groups, echo=TRUE, verbatim=TRUE, results=hide>>=
+# Load dataset
+data(Groups)
+Groups
+@
+
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lr}
+&group\\
+1&1 \\
+2&1 \\
+3&1 \\
+4&1 \\
+5&2 \\
+\vdots & \vdots \\ 
+20&3 \\   
+\end{tabular}
+ \captionsetup{font=footnotesize}
+\caption{Group assignments}
+\end{table}
+
+
+This table describes the assignment of every sample to one group (three groups overall in this example). Every line (sample) is assigned to one value (1-25) so the same value means the same group. Up to 25 groups are possible (as only 25 plotting symbols are available). The samples can be grouped by e.g. treatment, day of sampling or personal preferences.
+
+\begin{figure}[h]
+\begin{center}
+<<label=PlotGroups, fig=TRUE, results=hide, width=8, height=7>>=
+chic(Results_overlaps,Results_xor,group=Groups,show_cluster=FALSE)
+@
+\end{center}
+\setlength{\abovecaptionskip}{-10pt}
+\captionsetup{font=footnotesize}
+\caption{NMDS plot with groups}
+\label{fig:fig5plot}
+\end{figure}
+
+
+
+Plotting of the abiotic parameters and the groups can be combined in one plot.
+
+\newpage
+
+\begin{figure}[h]
+\begin{center}
+<<label=PlotGroupsAbiotic, fig=TRUE, width=8, height=7, results=hide>>=
+chic(Results_overlaps,Results_xor,group=Groups,abiotic=Abiotic_data,
+show_cluster=FALSE,verbose=TRUE)
+@
+\end{center}
+\setlength{\abovecaptionskip}{-10pt}
+\captionsetup{font=footnotesize}
+\caption{NMDS plot with abiotic parameters and groups}
+\label{fig:fig4plot}
+\end{figure}
+
+The p-value can be used to limit the display of abiotic parameters to the most significant ones. It is set to 0.05 per default. The color used for plotting these parameters is set to \texttt{"magenta"}. In the next example the p-value is changed to 0.01 and the color is changed to "darkred". Other possible colors are shown by typing colors() into R command line. In addition the legend is plotted to the top right corner of the plot.
+
+\begin{figure}[h]
+\begin{center}
+<<label=PlotChanged, fig=TRUE, width=8, height=7, results=hide>>=
+chic(Results_overlaps,Results_xor,group=Groups,legend_pos="topright",
+abiotic=Abiotic_data,p.max=0.01,col_abiotic="darkred",show_cluster=FALSE)
+@
+\end{center}
+\setlength{\abovecaptionskip}{-10pt}
+\captionsetup{font=footnotesize}
+\caption{NMDS plot with less abiotic parameters and different color}
+\label{fig:fig3plot}
+\end{figure}
+
+Only three abiotic parameters (former: four, see Figure \ref{fig:fig4plot}) are plotted due to the change of the maximal p-value. \\ \newline
+Even though gating is not necessary for this analysis additional gate information
+can be added to the plot if they are available e.g. based on CyBar analysis \cite{koch2013monitoring}. The attached dataset \texttt{Abiotic\_gates} contains abiotic parameters as well as gate information (percental cell numbers of every gate for each sample). 
+\newpage
+The content looks as follows (excerpt):
+
+<<gates, echo=TRUE, verbatim=TRUE>>=
+# Load dataset
+data(Abiotic_gates) 
+# Show data (first ten lines)
+Abiotic_gates[1:10,]
+@
+
+\begin{figure}[h]
+\begin{center}
+<<label=PlotGates, fig=TRUE, width=8, height=7, results=hide>>=
+chic(Results_overlaps,Results_xor,group=Groups,abiotic=Abiotic_gates,
+show_cluster=FALSE)
+@
+\end{center}
+\setlength{\abovecaptionskip}{-10pt}
+\captionsetup{font=footnotesize}
+\caption{NMDS plot with groups, abiotic parameters and gate information}
+\label{fig:fig2plot}
+\end{figure}
+
+
+It is also possible to manually select the columns of the abiotic parameters that should be used for the analysis. This might be helpful if there is a high number of abiotic parameters but only the impact of a few of them is of interest. These columns can be selected using box brackets. Within the brackets the space in front of the comma defines the rows and the space behind the comma defines the columns to be selected. If one space is empty all rows/columns are selected. These spaces are filled using a concatenation of either numbers or strings. In this example only the columns 6-10 (G1-G5) are used for plotting.
+
+\begin{figure}
+\begin{center}
+<<label=PlotSelected, fig=TRUE, width=8, height=7, results=hide>>=
+chic(Results_overlaps,Results_xor,group=Groups,
+abiotic=Abiotic_gates[,6:ncol(Abiotic_gates)],show_cluster=FALSE)
+@
+\end{center}
+\setlength{\abovecaptionskip}{-10pt}
+\captionsetup{font=footnotesize}
+\caption{NMDS plot with selected parameters}
+\label{fig:fig1plot}
+\end{figure}
+
+
+\newpage
+
+Typing the names of the columns instead of their numbers will give the same result as shown in Figure \ref{fig:fig1plot}.
+
+<<AbioticSelect_names, verbatim=TRUE, results=hide>>=
+chic(Results_overlaps,Results_xor,group=Groups,
+abiotic=Abiotic_gates[,c("G1","G2","G3","G4","G5")],show_cluster=FALSE)
+@
+
+\section{Outlook}
+
+In the future this package will provide all three steps of the CHIC analyzing procedure. Users will no longer be forced to have Summit 3.1 installed on their computers due to the fact that Summit 3.1 is no freeware and outdated. They will also not need to execute ImageJ manually. Providing all three steps to this package will make this analysing procedure easier, faster and more powerful.
+
+\bibliographystyle {apalike}
+\bibliography{flowCHICmanual}
+\end{document}

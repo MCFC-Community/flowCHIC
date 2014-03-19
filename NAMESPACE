@@ -1,0 +1,9 @@
+export(chic)
+
+importFrom("graphics", legend, plot, points, text)
+
+importFrom("grDevices", dev.new)
+
+importFrom("stats", as.dist, hclust)
+
+importFrom("vegan",metaMDS,ordihull,envfit)
